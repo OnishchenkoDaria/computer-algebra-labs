@@ -1,145 +1,126 @@
 from itertools import product
 from math import isqrt
-from sympy import symbols, Poly, ZZ, div, interpolate, expand
+from sympy import symbols, Poly, ZZ, QQ, div, interpolate, expand
 
 x = symbols('x')
 
 
-def integer_divisors(n: int):
-    """Повертає всі цілі дільники числа n."""
-    if n == 0:
-        raise ValueError("Для 0 множина дільників нескінченна.")
-    n_abs = abs(n)
-    divs = set()
-    for d in range(1, isqrt(n_abs) + 1):
-        if n_abs % d == 0:
-            divs.add(d)
-            divs.add(-d)
-            divs.add(n_abs // d)
-            divs.add(-(n_abs // d))
-    return sorted(divs)
+def divisors(n):
+    """Пошук усіх цілих дільників числа"""
+    n = abs(n)
+    result = set()
+
+    for i in range(1, isqrt(n) + 1):
+        if n % i == 0:
+            result.update({i, -i, n // i, -(n // i)})
+
+    return sorted(result)
 
 
-def poly_from_values(points, values):
-    """
-    Відновлює поліном за значеннями у точках через інтерполяцію.
-    points: список x_i
-    values: список y_i
-    """
+def interpolate_poly(points, values):
+    """Побудова полінома за значеннями (інтерполяція)"""
     expr = interpolate(list(zip(points, values)), x)
-    return Poly(expand(expr), x, domain='QQ')
+    return Poly(expand(expr), x, domain=QQ)
 
 
-def has_integer_coeffs(poly: Poly) -> bool:
-    """Перевіряє, що всі коефіцієнти полінома цілі."""
-    return all(c.is_integer for c in poly.all_coeffs())
+def kronecker_factor(f):
 
-
-def primitive_integer_poly(poly: Poly) -> Poly:
-    """
-    Переводить поліном з QQ у Z, якщо це можливо через очищення знаменників.
-    Для методу Кронекера краще залишати лише цілочисельні кандидати,
-    тому тут тільки контрольна нормалізація.
-    """
-    coeffs = poly.all_coeffs()
-    if all(c.is_integer for c in coeffs):
-        return Poly(poly.as_expr(), x, domain=ZZ)
-    return poly
-
-
-def kronecker_find_factor(f: Poly):
-    """
-    Знаходить один нетривіальний дільник полінома f методом Кронекера
-    або повертає None, якщо не знайшов.
-    """
     f = Poly(f, x, domain=ZZ)
+
+    print("\n--- Початок алгоритму Кронекера ---")
+    print("Поліном f(x):", f.as_expr())
+
     n = f.degree()
+    print("Степінь полінома:", n)
 
     if n <= 1:
         return None
 
-    # 1. Шукаємо цілі корені серед 0, 1, ..., floor(n/2) та їх заперечень
-    # Для класичного опису часто перевіряють f(i)=0 на невеликому наборі точок,
-    # але на практиці корисно перевірити дільники вільного члена.
-    c0 = f.eval(0)
-    if c0 != 0:
-        for r in integer_divisors(int(c0)):
-            if f.eval(r) == 0:
-                return Poly(x - r, x, domain=ZZ)
-
-    # 2. Шукаємо дільник степеня m = 1..floor(n/2)
+    # межа степеня можливого множника
     max_deg = n // 2
+    print("Максимальний степінь шуканого множника:", max_deg)
 
+    # перебір можливих степенів множника
     for m in range(1, max_deg + 1):
-        # Беремо m+1 точок
+
+        print("\nЕтап: перевірка множників степеня", m)
+
         points = list(range(m + 1))
+        print("Вибрані точки:", points)
 
-        # Якщо в якійсь точці f(i)=0, краще змістити набір точок
-        shift = 0
-        while True:
-            shifted_points = [p + shift for p in points]
-            vals = [f.eval(p) for p in shifted_points]
-            if all(v != 0 for v in vals):
-                break
-            shift += 1
+        values = [f.eval(i) for i in points]
+        print("Значення f(i):", values)
 
-        divisor_lists = [integer_divisors(int(v)) for v in vals]
+        # пошук дільників
+        div_lists = []
+        for p, v in zip(points, values):
+            d = divisors(int(v))
+            div_lists.append(d)
+            print(f"Дільники числа f({p}) = {v}:", d)
 
-        for candidate_values in product(*divisor_lists):
-            g_q = poly_from_values(shifted_points, candidate_values)
+        # перебір можливих значень g(i)
+        for combo in product(*div_lists):
 
-            # Степінь не має перевищувати m і не має бути 0
-            if g_q.degree() <= 0 or g_q.degree() > m:
+            print("\nПеревірка набору значень g(i):", combo)
+
+            # побудова кандидата g(x)
+            g = interpolate_poly(points, combo)
+
+            print("Кандидатний поліном g(x):", g.as_expr())
+
+            # перевірка степеня
+            if g.degree() <= 0 or g.degree() > m:
+                print("Відкинуто: некоректний степінь")
                 continue
 
-            # Залишаємо лише цілочисельні кандидати
-            if not has_integer_coeffs(g_q):
+            # перевірка цілочисельних коефіцієнтів
+            if not all(c.is_integer for c in g.all_coeffs()):
+                print("Відкинуто: коефіцієнти не цілі")
                 continue
 
-            g = primitive_integer_poly(g_q)
+            g = Poly(g.as_expr(), x, domain=ZZ)
 
-            # Відкидаємо ±1
-            if g.degree() == 0:
-                continue
+            # перевірка ділення
+            q, r = div(f, g)
 
-            # Перевіряємо точне ділення
-            q, r = div(f, g, domain=ZZ)
-            if r.is_zero:
-                # Не беремо тривіальний випадок g = ±f
-                if g.degree() < f.degree():
-                    return g
+            print("Остача від ділення:", r.as_expr())
 
+            if r.is_zero and g.degree() < f.degree():
+                print("Знайдено множник:", g.as_expr())
+                return g
+
+    print("Множник не знайдено")
     return None
 
 
-def kronecker_factorization(f: Poly):
-    """
-    Повний рекурсивний розклад методом Кронекера.
-    Повертає список нерозкладних множників над Z[x].
-    """
+def kronecker_factorization(f):
+
     f = Poly(f, x, domain=ZZ)
 
-    if f.degree() <= 1:
-        return [f]
+    factor = kronecker_factor(f)
 
-    factor = kronecker_find_factor(f)
     if factor is None:
+        print("\nПоліном нерозкладний:", f.as_expr())
         return [f]
 
-    q, r = div(f, factor, domain=ZZ)
-    if not r.is_zero:
-        return [f]
+    q, _ = div(f, factor)
 
-    return kronecker_factorization(factor) + kronecker_factorization(q)
+    print("\nРозклад:")
+    print("f(x) =", factor.as_expr(), "*", q.as_expr())
+
+    return (
+        kronecker_factorization(factor)
+        + kronecker_factorization(q)
+    )
 
 
+# тестовий приклад
 if __name__ == "__main__":
-    f = Poly(x**5 - x**4 - 2*x**3 - 8*x**2 + 6*x - 1, x, domain=ZZ)
+
+    f = Poly(x**5 - x**4 - 2*x**3 - 8*x**2 + 6*x - 1, x)
 
     factors = kronecker_factorization(f)
 
-    print("Поліном:")
-    print(f.as_expr())
-    print("\nЗнайдені множники:")
-    for fac in factors:
-        print(fac.as_expr())
+    print("\n--- Підсумкові множники ---")
+    for g in factors:
+        print(g.as_expr())
