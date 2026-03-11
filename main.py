@@ -117,7 +117,18 @@ def kronecker_factorization(f):
 # тестовий приклад
 if __name__ == "__main__":
 
-    f = Poly(x**5 - x**4 - 2*x**3 - 8*x**2 + 6*x - 1, x)
+    print("Номер студента у списку - 18 : варіант 4\n")
+    print("\n==================== TASK 18 ====================\n")
+    f = Poly(x**5 + x**4 - 21*x**3 - 45*x**2, x)
+
+    factors = kronecker_factorization(f)
+
+    print("\n--- Підсумкові множники ---")
+    for g in factors:
+        print(g.as_expr())
+
+    print("\n==================== TASK 24 ====================\n")
+    f = Poly(2 * x ** 4 + 14 * x ** 3 + 12 * x ** 2 - 56 * x - 80, x)
 
     factors = kronecker_factorization(f)
 
