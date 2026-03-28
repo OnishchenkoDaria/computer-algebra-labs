@@ -1,5 +1,4 @@
-from sympy import symbols, Poly, QQ, expand
-
+from sympy import symbols, Poly, QQ, expand, groebner
 
 x, y, z = symbols('x y z')
 GENS = (x, y, z)   # порядок змінних: x > y > z (lex)
@@ -263,10 +262,4 @@ if __name__ == "__main__":
     for i, g in enumerate(Gred, 1):
         print(f"r{i} =", g.as_expr())
 
-    '''
-    # ===================================
-    for check:
-    
-    from sympy import groebner
-    print(groebner([f1.as_expr(), f2.as_expr(), f3.as_expr()], x, y, z, order='lex'))
-    '''
+    print(f"Library method: {groebner([f1.as_expr(), f2.as_expr(), f3.as_expr()], x, y, z, order='lex')}")
