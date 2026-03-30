@@ -1,3 +1,4 @@
+import time
 from sympy import symbols, Poly, QQ, expand, groebner
 
 x, y, z = symbols('x y z')
@@ -235,6 +236,9 @@ if __name__ == "__main__":
     for i, f in enumerate(F, 1):
         print(f"f{i} =", f.as_expr())
 
+    # власна реалізація
+    start = time.perf_counter()
+
     G, history = buchberger(F)
 
     print("\n=== Кроки Бухбергера ===")
@@ -258,8 +262,36 @@ if __name__ == "__main__":
         print(f"m{i} =", g.as_expr())
 
     Gred = reduced_groebner_basis(G)
-    print("\n=== Редукований базис Гребнера ===")
+
+    end = time.perf_counter()
+    custom_time = end - start
+
+    print("\n=== ВЛАСНА РЕАЛІЗАЦІЯ ===")
+    print(f"Час виконання: {custom_time:.6f} секунд")
+
+    print("\nРедукований базис Гребнера:")
     for i, g in enumerate(Gred, 1):
         print(f"r{i} =", g.as_expr())
 
-    print(f"Library method: {groebner([f1.as_expr(), f2.as_expr(), f3.as_expr()], x, y, z, order='lex')}")
+    # sympy method
+    start = time.perf_counter()
+
+    G_lib = groebner(
+        [f1.as_expr(), f2.as_expr(), f3.as_expr()],
+        x, y, z,
+        order="lex"
+    )
+
+    end = time.perf_counter()
+    lib_time = end - start
+
+    print("\n=== БІБЛІОТЕЧНИЙ МЕТОД (SymPy) ===")
+    print(f"Час виконання: {lib_time:.6f} секунд")
+    print(G_lib)
+
+    print("\n=== ПОРІВНЯННЯ ЧАСУ ===")
+    print(f"Власна реалізація: {custom_time:.6f} с")
+    print(f"Бібліотечний метод: {lib_time:.6f} с")
+
+    if lib_time > 0:
+        print(f"Прискорення бібліотеки: {custom_time / lib_time:.2f}x")
