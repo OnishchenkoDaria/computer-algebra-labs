@@ -244,9 +244,23 @@ if __name__ == "__main__":
     print("\n=== Кроки Бухбергера ===")
     for k, item in enumerate(history, 1):
         i, j = item["pair"]
-        print(f"\nКрок {k}: пара (g{i+1}, g{j+1})")
-        print("S =", item["S"])
-        print("R =", item["R"])
+        if i < 3 and j < 3:
+            print(f"\nКрок {k}: S(f{i + 1}, f{j + 1})")
+        else:
+            print(f"\nКрок {k}: пара (g{i + 1}, g{j + 1})")
+
+        mp = LM(G[i])
+        mq = LM(G[j])
+        lcm = monomial_lcm(mp, mq)
+
+        print("Старші мономи:")
+        print(f"LM = {monomial_to_expr(mp)}, {monomial_to_expr(mq)}")
+        print(f"НСК = {monomial_to_expr(lcm)}")
+
+        print("S-поліном: =", item["S"])
+        print("Після редукції R:")
+        print(item["R"])
+
         if item["added"]:
             print("=> Додаємо новий поліном до базису")
         else:
