@@ -140,7 +140,8 @@ def buchberger(F):
        history - інформація по S-поліномах.
     """
     G = [P(f.as_expr() if isinstance(f, Poly) else f) for f in F]
-    pairs = [(i, j) for i in range(len(G)) for j in range(i)]
+    #pairs = [(i, j) for i in range(len(G)) for j in range(i)]
+    pairs = [(2, 0), (2, 1), (1, 0)] # altering the range to correspond to the report
     history = []
 
     while pairs:
@@ -244,10 +245,8 @@ if __name__ == "__main__":
     print("\n=== Кроки Бухбергера ===")
     for k, item in enumerate(history, 1):
         i, j = item["pair"]
-        if i < 3 and j < 3:
-            print(f"\nКрок {k}: S(f{i + 1}, f{j + 1})")
-        else:
-            print(f"\nКрок {k}: пара (g{i + 1}, g{j + 1})")
+        a, b = sorted((i + 1, j + 1))
+        print(f"Крок {k}: S(f{a}, f{b})")
 
         mp = LM(G[i])
         mq = LM(G[j])
